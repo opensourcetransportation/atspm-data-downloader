@@ -37,7 +37,7 @@ The application dynamically merges and resolves configuration settings with the 
 | **Location ID** | `-l`, `--location` | `ATSPM_LOCATION` | *Required* | The ATSPM controller location identifier (e.g., `1014`) |
 | **Data Type** | `-t`, `--data-type` | `ATSPM_DATA_TYPE` | *Optional* | Specialized stream category type (e.g., `IndianaEvent`, `ApproachPcdAggregation`) |
 | **API Key** | `-k`, `--api-key` | `ATSPM_API_KEY` | *Optional* | The authentication API key provided by the ATSPM instance |
-| **API URL** | `-u`, `--api-url` | `ATSPM_API_URL` | *Optional* | Base URL of the API (e.g., `https://atspm.udot.utah.gov/data`) |
+| **API URL** | `-u`, `--api-url` | `ATSPM_API_URL` | *Optional* | Base URL of the API (e.g., `https://your-atspm-instance.gov/data`) |
 | **Format** | `-f`, `--format` | `ATSPM_FORMAT` | `ndjson` | The output format: `ndjson` (highly recommended), `csv`, or `json` |
 | **Output Path** | `-o`, `--output` | `ATSPM_OUTPUT` | *Stdout* | Destination file path. If omitted, outputs directly to standard output stream |
 
@@ -86,7 +86,7 @@ You can run the utility as a one-off task using arguments passed straight to the
 docker run --rm \
   -v ${PWD}/output:/app/output \
   ghcr.io/opensourcetransportation/atspm-data-downloader:latest \
-  download events -l 1014 -s 2026-07-24 -e 2026-07-25 -k YOUR_API_KEY_HERE -u https://atspm.udot.utah.gov/data -o /app/output/events_1014.ndjson
+  download events -l 1014 -s 2026-07-24 -e 2026-07-25 -k YOUR_API_KEY_HERE -u https://your-atspm-instance.gov/data -o /app/output/events_1014.ndjson
 ```
 
 #### Aggregations Download:
@@ -94,7 +94,7 @@ docker run --rm \
 docker run --rm \
   -v ${PWD}/output:/app/output \
   ghcr.io/opensourcetransportation/atspm-data-downloader:latest \
-  download aggregations -l 1014 -s 2026-07-24 -e 2026-07-25 -k YOUR_API_KEY_HERE -u https://atspm.udot.utah.gov/data -o /app/output/aggregations_1014.csv
+  download aggregations -l 1014 -s 2026-07-24 -e 2026-07-25 -k YOUR_API_KEY_HERE -u https://your-atspm-instance.gov/data -o /app/output/aggregations_1014.csv
 ```
 
 ---
@@ -106,7 +106,7 @@ Below are clean Docker Compose scenario templates for both core download service
 #### Local `.env` Template:
 ```ini
 ATSPM_API_KEY=YOUR_API_KEY_HERE
-ATSPM_API_URL=https://atspm.udot.utah.gov/data
+ATSPM_API_URL=https://your-atspm-instance.gov/data
 ATSPM_LOCATION=1014
 ATSPM_START=2026-07-24
 ATSPM_END=2026-07-25
