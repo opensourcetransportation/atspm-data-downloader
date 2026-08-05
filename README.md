@@ -157,9 +157,7 @@ docker run --rm \
 
 ### Docker Compose Multi-Scenarios
 
-Below are clean Docker Compose scenario templates for both core download services. 
-
-To run containerized bulk downloads, place your `locations.rsp` file in the same directory as your `docker-compose.yml` file. Docker will mount this file directly into the container and execute it.
+To run containerized bulk downloads, create a **`docker-compose.yml`** file inside the respective task folder. Place your `locations.rsp` file in that same folder. 
 
 #### Local `.env` Template:
 ```ini
@@ -169,10 +167,10 @@ DownloaderConfiguration__Start=2026-07-24
 DownloaderConfiguration__End=2026-07-25
 ```
 
-#### Scenario A: Download Raw Event Logs (`docker-compose-events.yml`)
+#### Scenario A: Download Raw Event Logs (`docker-compose.yml`)
 ```yaml
 services:
-  event-downloader:
+  atspm_event_downloader:
     image: ghcr.io/opensourcetransportation/atspm-data-downloader:latest
     container_name: atspm_event_downloader
     environment:
@@ -188,10 +186,15 @@ services:
     command: ["download", "events", "@/app/locations.rsp"]
 ```
 
-#### Scenario B: Download Approach Aggregations (`docker-compose-aggregations.yml`)
+To execute, run inside this folder:
+```bash
+docker compose run --rm atspm_event_downloader
+```
+
+#### Scenario B: Download Approach Aggregations (`docker-compose.yml`)
 ```yaml
 services:
-  aggregation-downloader:
+  atspm_aggregation_downloader:
     image: ghcr.io/opensourcetransportation/atspm-data-downloader:latest
     container_name: atspm_aggregation_downloader
     environment:
@@ -207,13 +210,16 @@ services:
     command: ["download", "aggregations", "@/app/locations.rsp"]
 ```
 
-To run either compose stack:
+To execute, run inside this folder:
 ```bash
-# Run events download
-docker-compose -f docker-compose-events.yml up
+docker compose run --rm atspm_aggregation_downloader
+```
 
-# Run aggregations download
-docker-compose -f docker-compose-aggregations.yml up
+---
+
+*Note: If you want to explicitly supply the file path via the `-f` flag in either scenario, the correct syntax is `-f docker-compose.yml`:*
+```bash
+docker compose -f docker-compose.yml run --rm atspm_event_downloader
 ```
 
 ---
