@@ -5,6 +5,12 @@ on:
     tags:
       - 'v*'
       - '[0-9]+.[0-9]+.[0-9]+*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Git tag of the release to update (e.g., v1.1.0). Leave blank to target the latest release.'
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -39,14 +45,7 @@ jobs:
         dotnet-version: 8.0.x
 
     - name: Publish Single File Binary
-      run: |
-        dotnet publish atspm-data-downloader/atspm-data-downloader.csproj \
-          -c Release \
-          -r ${{ matrix.runtime }} \
-          --self-contained true \
-          -p:PublishSingleFile=true \
-          -p:PublishReadyToRun=true \
-          -o publish
+      run: dotnet publish atspm-data-downloader/atspm-data-downloader.csproj -c Release -r ${{ matrix.runtime }} --self-contained true -p:PublishSingleFile=true -p:PublishReadyToRun=true -o publish
 
     - name: Archive Binary
       shell: pwsh
@@ -56,5 +55,6 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         files: ${{ matrix.archive_file }}
+        tag_name: ${{ inputs.tag_name || (github.ref_type == 'tag' && github.ref_name) || '' }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
