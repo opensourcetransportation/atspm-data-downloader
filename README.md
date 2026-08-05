@@ -101,12 +101,12 @@ dotnet run -- download aggregations \
   --output ./output
 ```
 
-### 3. Bulk Downloads using an External Location File (`@locations.rdp`)
+### 3. Bulk Downloads using an External Location File (`@locations.rsp`)
 The CLI natively supports parsing arguments from an external "response file" using the `@` symbol prefix. This allows you to manage lists of controller identifiers inside a flat text file without cluttering the main command line.
 
-Create a file named `locations.rdp` containing the target signal location CLI arguments (one per line):
+Create a file named `locations.rsp` containing the target signal location CLI arguments (one per line):
 
-**locations.rdp:**
+**locations.rsp:**
 ```text
 --location
 1014
@@ -115,9 +115,9 @@ Create a file named `locations.rdp` containing the target signal location CLI ar
 2024
 ```
 
-Then, execute the downloader by referencing the `.rdp` file directly:
+Then, execute the downloader by referencing the `.rsp` file directly:
 ```bash
-dotnet run -- download events @locations.rdp \
+dotnet run -- download events @locations.rsp \
   --start 2026-07-24 \
   --end 2026-07-25 \
   --format ndjson \
@@ -159,7 +159,7 @@ docker run --rm \
 
 Below are clean Docker Compose scenario templates for both core download services. 
 
-To run containerized bulk downloads, place your `locations.rdp` file in the same directory as your `docker-compose.yml` file. Docker will mount this file directly into the container and execute it.
+To run containerized bulk downloads, place your `locations.rsp` file in the same directory as your `docker-compose.yml` file. Docker will mount this file directly into the container and execute it.
 
 #### Local `.env` Template:
 ```ini
@@ -169,7 +169,7 @@ DownloaderConfiguration__Start=2026-07-24
 DownloaderConfiguration__End=2026-07-25
 ```
 
-#### Scenario A: Download Raw Event Logs (`docker-compose.yml`)
+#### Scenario A: Download Raw Event Logs (`docker-compose-events.yml`)
 ```yaml
 version: '3.8'
 
@@ -186,11 +186,11 @@ services:
       - DownloaderConfiguration__OutputPath=/app/output
     volumes:
       - ./output:/app/output
-      - ./locations.rdp:/app/locations.rdp
-    command: ["download", "events", "@/app/locations.rdp"]
+      - ./locations.rsp:/app/locations.rsp
+    command: ["download", "events", "@/app/locations.rsp"]
 ```
 
-#### Scenario B: Download Approach Aggregations (`docker-compose.yml`)
+#### Scenario B: Download Approach Aggregations (`docker-compose-aggregations.yml`)
 ```yaml
 version: '3.8'
 
@@ -207,8 +207,8 @@ services:
       - DownloaderConfiguration__OutputPath=/app/output
     volumes:
       - ./output:/app/output
-      - ./locations.rdp:/app/locations.rdp
-    command: ["download", "aggregations", "@/app/locations.rdp"]
+      - ./locations.rsp:/app/locations.rsp
+    command: ["download", "aggregations", "@/app/locations.rsp"]
 ```
 
 To run either compose stack:
