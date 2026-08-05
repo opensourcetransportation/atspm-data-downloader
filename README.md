@@ -18,7 +18,7 @@ To query and download datasets from production ATSPM API endpoints, you **must o
 
 The API key can be supplied in three ways (in order of priority):
 1. Via the CLI flag `-k` or `--api-key`
-2. Via the Environment Variable `ATSPM_API_KEY`
+2. Via the Environment Variable `DownloaderConfiguration__ApiKey`
 3. Via the `"ApiKey"` setting in your `appsettings.json` file
 
 ---
@@ -32,14 +32,46 @@ The application dynamically merges and resolves configuration settings with the 
 
 | Parameter | Command CLI Option | Environment Variable | Default Value | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| **Start Date** | `-s`, `--start` | `ATSPM_START` | *Required* | Inclusive download start date/time (e.g., `yyyy-MM-dd` or `yyyy-MM-ddTHH:mm:ss`) |
-| **End Date** | `-e`, `--end` | `ATSPM_END` | *Required* | Inclusive download end date/time (e.g., `yyyy-MM-dd` or `yyyy-MM-ddTHH:mm:ss`) |
-| **Location ID** | `-l`, `--location` | `ATSPM_LOCATION` | *Required* | The ATSPM controller location identifier (e.g., `1014`) |
-| **Data Type** | `-t`, `--data-type` | `ATSPM_DATA_TYPE` | *Optional* | Specialized stream category type (e.g., `IndianaEvent`, `ApproachPcdAggregation`) |
-| **API Key** | `-k`, `--api-key` | `ATSPM_API_KEY` | *Optional* | The authentication API key provided by the ATSPM instance |
-| **API URL** | `-u`, `--api-url` | `ATSPM_API_URL` | *Optional* | Base URL of the API (e.g., `https://your-atspm-instance.gov/data`) |
-| **Format** | `-f`, `--format` | `ATSPM_FORMAT` | `ndjson` | The output format: `ndjson` (highly recommended), `csv`, or `json` |
-| **Output Path** | `-o`, `--output` | `ATSPM_OUTPUT` | *Stdout* | Destination file path. If omitted, outputs directly to standard output stream |
+| **Start Date** | `-s`, `--start` | `DownloaderConfiguration__Start` | *Required* | Inclusive download start date/time (e.g., `yyyy-MM-dd` or `yyyy-MM-ddTHH:mm:ss`) |
+| **End Date** | `-e`, `--end` | `DownloaderConfiguration__End` | *Required* | Inclusive download end date/time (e.g., `yyyy-MM-dd` or `yyyy-MM-ddTHH:mm:ss`) |
+| **Location IDs** | `-l`, `--location` | `DownloaderConfiguration__LocationIdentifiers__0` | *Required* | One or more space-separated ATSPM controller location identifiers (e.g. `1014 1015` or `-l 1014 -l 1015`). For environment arrays, use indices: `LocationIdentifiers__0`, `LocationIdentifiers__1`, etc. |
+| **Data Type** | `-t`, `--data-type` | `DownloaderConfiguration__DataType` | *Optional* | Specialized stream category type (e.g., `IndianaEvent`, `ApproachPcdAggregation`) |
+| **API Key** | `-k`, `--api-key` | `DownloaderConfiguration__ApiKey` | *Optional* | The authentication API key provided by the ATSPM instance |
+| **API URL** | `-u`, `--api-url` | `DownloaderConfiguration__ApiUrl` | *Optional* | Base URL of the API (e.g., `https://your-atspm-instance.gov/data`) |
+| **Format** | `-f`, `--format` | `DownloaderConfiguration__Format` | `ndjson` | The output format: `ndjson` (highly recommended), `csv`, or `json` |
+| **Output Path** | `-o`, `--output` | `DownloaderConfiguration__OutputPath` | *Current Dir* | Destination directory path where downloaded files are saved. Files are saved as `{location}-{dataset}-{start}-{end}.{ext}` inside this directory. |
+
+---
+
+## 📄 Configuration File (`appsettings.json`)
+
+You can persist your common configurations (such as endpoint URLs and API keys) inside your local `appsettings.json` file. The file is structured as follows:
+
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Warning",
+      "Microsoft": "Warning",
+      "atspm_data_downloader": "Debug"
+    }
+  },
+  "DownloaderConfiguration": {
+    "Start": "2026-07-24T00:00:00",
+    "End": "2026-07-25T00:00:00",
+    "LocationIdentifiers": [
+      "1014",
+      "1015",
+      "2023"
+    ],
+    "DataType": null,
+    "ApiKey": "YOUR_API_KEY_HERE",
+    "ApiUrl": "https://your-atspm-instance.gov/data/",
+    "Format": "ndjson",
+    "OutputPath": "output/"
+  }
+}
+```
 
 ---
 
@@ -47,7 +79,7 @@ The application dynamically merges and resolves configuration settings with the 
 
 Below are some common real-world execution examples when running directly via the `.NET CLI`:
 
-### 1. Download Raw Event Logs to an NDJSON File
+### 1. Download Raw Event Logs
 NDJSON (Newline-Delimited JSON) is the recommended format for streaming very large datasets. It allows records to be read line-by-line downstream with a minimal memory footprint.
 ```bash
 dotnet run -- download events \
@@ -55,10 +87,10 @@ dotnet run -- download events \
   --start 2026-07-24 \
   --end 2026-07-25 \
   --format ndjson \
-  --output events_1014.ndjson
+  --output ./output
 ```
 
-### 2. Download Aggregation Logs to a CSV File
+### 2. Download Aggregation Logs to CSV
 Downloads approach aggregations for a controller and structures them directly into a tabular CSV file.
 ```bash
 dotnet run -- download aggregations \
@@ -66,8 +98,32 @@ dotnet run -- download aggregations \
   --start 2026-07-24 \
   --end 2026-07-25 \
   --format csv \
-  --output aggregations_1014.csv
+  --output ./output
 ```
+
+### 3. Bulk Downloads using an External Location File (`@locations.rdp`)
+The CLI natively supports parsing arguments from an external "response file" using the `@` symbol prefix. This allows you to manage lists of controller identifiers inside a flat text file without cluttering the main command line.
+
+Create a file named `locations.rdp` containing the target signal location CLI arguments (one per line):
+
+**locations.rdp:**
+```text
+--location
+1014
+1015
+2023
+2024
+```
+
+Then, execute the downloader by referencing the `.rdp` file directly:
+```bash
+dotnet run -- download events @locations.rdp \
+  --start 2026-07-24 \
+  --end 2026-07-25 \
+  --format ndjson \
+  --output ./output
+```
+This is fully cross-platform and works seamlessly inside Command Prompt, PowerShell, Bash, and Docker.
 
 ---
 
@@ -86,7 +142,7 @@ You can run the utility as a one-off task using arguments passed straight to the
 docker run --rm \
   -v ${PWD}/output:/app/output \
   ghcr.io/opensourcetransportation/atspm-data-downloader:latest \
-  download events -l 1014 -s 2026-07-24 -e 2026-07-25 -k YOUR_API_KEY_HERE -u https://your-atspm-instance.gov/data -o /app/output/events_1014.ndjson
+  download events -l 1014 -s 2026-07-24 -e 2026-07-25 -k YOUR_API_KEY_HERE -u https://your-atspm-instance.gov/data -o /app/output
 ```
 
 #### Aggregations Download:
@@ -94,22 +150,23 @@ docker run --rm \
 docker run --rm \
   -v ${PWD}/output:/app/output \
   ghcr.io/opensourcetransportation/atspm-data-downloader:latest \
-  download aggregations -l 1014 -s 2026-07-24 -e 2026-07-25 -k YOUR_API_KEY_HERE -u https://your-atspm-instance.gov/data -o /app/output/aggregations_1014.csv
+  download aggregations -l 1014 -s 2026-07-24 -e 2026-07-25 -k YOUR_API_KEY_HERE -u https://your-atspm-instance.gov/data -o /app/output
 ```
 
 ---
 
 ### Docker Compose Multi-Scenarios
 
-Below are clean Docker Compose scenario templates for both core download services. Create a local `.env` configuration file in the same directory to feed credentials and run parameters safely:
+Below are clean Docker Compose scenario templates for both core download services. 
+
+To run containerized bulk downloads, place your `locations.rdp` file in the same directory as your `docker-compose.yml` file. Docker will mount this file directly into the container and execute it.
 
 #### Local `.env` Template:
 ```ini
-ATSPM_API_KEY=YOUR_API_KEY_HERE
-ATSPM_API_URL=https://your-atspm-instance.gov/data
-ATSPM_LOCATION=1014
-ATSPM_START=2026-07-24
-ATSPM_END=2026-07-25
+DownloaderConfiguration__ApiKey=YOUR_API_KEY_HERE
+DownloaderConfiguration__ApiUrl=https://your-atspm-instance.gov/data
+DownloaderConfiguration__Start=2026-07-24
+DownloaderConfiguration__End=2026-07-25
 ```
 
 #### Scenario A: Download Raw Event Logs (`docker-compose-events.yml`)
@@ -121,16 +178,16 @@ services:
     image: ghcr.io/opensourcetransportation/atspm-data-downloader:latest
     container_name: atspm_event_downloader
     environment:
-      - ATSPM_API_KEY=${ATSPM_API_KEY}
-      - ATSPM_API_URL=${ATSPM_API_URL}
-      - ATSPM_LOCATION=${ATSPM_LOCATION}
-      - ATSPM_START=${ATSPM_START}
-      - ATSPM_END=${ATSPM_END}
-      - ATSPM_FORMAT=ndjson
-      - ATSPM_OUTPUT=/app/output/events_${ATSPM_LOCATION}.ndjson
+      - DownloaderConfiguration__ApiKey=${DownloaderConfiguration__ApiKey}
+      - DownloaderConfiguration__ApiUrl=${DownloaderConfiguration__ApiUrl}
+      - DownloaderConfiguration__Start=${DownloaderConfiguration__Start}
+      - DownloaderConfiguration__End=${DownloaderConfiguration__End}
+      - DownloaderConfiguration__Format=ndjson
+      - DownloaderConfiguration__OutputPath=/app/output
     volumes:
       - ./output:/app/output
-    command: ["download", "events"]
+      - ./locations.rdp:/app/locations.rdp
+    command: ["download", "events", "@/app/locations.rdp"]
 ```
 
 #### Scenario B: Download Approach Aggregations (`docker-compose-aggregations.yml`)
@@ -142,16 +199,16 @@ services:
     image: ghcr.io/opensourcetransportation/atspm-data-downloader:latest
     container_name: atspm_aggregation_downloader
     environment:
-      - ATSPM_API_KEY=${ATSPM_API_KEY}
-      - ATSPM_API_URL=${ATSPM_API_URL}
-      - ATSPM_LOCATION=${ATSPM_LOCATION}
-      - ATSPM_START=${ATSPM_START}
-      - ATSPM_END=${ATSPM_END}
-      - ATSPM_FORMAT=csv
-      - ATSPM_OUTPUT=/app/output/aggregations_${ATSPM_LOCATION}.csv
+      - DownloaderConfiguration__ApiKey=${DownloaderConfiguration__ApiKey}
+      - DownloaderConfiguration__ApiUrl=${DownloaderConfiguration__ApiUrl}
+      - DownloaderConfiguration__Start=${DownloaderConfiguration__Start}
+      - DownloaderConfiguration__End=${DownloaderConfiguration__End}
+      - DownloaderConfiguration__Format=csv
+      - DownloaderConfiguration__OutputPath=/app/output
     volumes:
       - ./output:/app/output
-    command: ["download", "aggregations"]
+      - ./locations.rdp:/app/locations.rdp
+    command: ["download", "aggregations", "@/app/locations.rdp"]
 ```
 
 To run either compose stack:
