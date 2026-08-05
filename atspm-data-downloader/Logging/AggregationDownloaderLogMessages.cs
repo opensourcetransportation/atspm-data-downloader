@@ -22,7 +22,7 @@ namespace atspm_data_downloader.Logging;
 /// <summary>
 /// Log messages for AggregationDownloaderService using high-performance source-generated loggers.
 /// </summary>
-public partial class AggregationDownloaderLogMessages
+public partial class AggregationDownloaderLogMessages : IDownloaderLogMessages
 {
     private readonly ILogger _logger;
 
@@ -79,4 +79,19 @@ public partial class AggregationDownloaderLogMessages
     /// <param name="count">The current total of processed records.</param>
     [LoggerMessage(EventId = 1005, EventName = "Progress Progressed", Level = LogLevel.Information, Message = "Processed {count} aggregation records so far...")]
     public partial void ProgressProgressed(int count);
+
+    /// <summary>
+    /// Logs when a download file starts writing to the file system.
+    /// </summary>
+    /// <param name="label">The friendly label of the dataset.</param>
+    /// <param name="filePath">The target file path.</param>
+    [LoggerMessage(EventId = 1006, EventName = "Saving Download", Level = LogLevel.Information, Message = "Saving {label} download to {filePath}")]
+    public partial void SavingDownload(string label, string filePath);
+
+    /// <summary>
+    /// Logs the list of locations that failed to download.
+    /// </summary>
+    /// <param name="locations">The comma-separated list of failed location identifiers.</param>
+    [LoggerMessage(EventId = 1007, EventName = "Downloads Failed Summary", Level = LogLevel.Error, Message = "Downloads failed for the following locations: {locations}")]
+    public partial void DownloadsFailedSummary(string locations);
 }

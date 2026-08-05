@@ -16,7 +16,6 @@
 #endregion
 
 using System.ComponentModel.DataAnnotations;
-using Utah.Udot.Atspm.Infrastructure.Configuration;
 using Utah.Udot.NetStandardToolkit.Configuration;
 
 namespace atspm_data_downloader.Configuration;
