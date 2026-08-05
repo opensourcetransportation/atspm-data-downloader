@@ -24,5 +24,6 @@ RUN dotnet publish "./atspm-data-downloader.csproj" -c $BUILD_CONFIGURATION -o /
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final
 WORKDIR /app
+LABEL org.opencontainers.image.source=https://github.com/opensourcetransportation/atspm-data-downloader
 COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "atspm-data-downloader.dll"]
