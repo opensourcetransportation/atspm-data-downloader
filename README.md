@@ -34,7 +34,7 @@ The application dynamically merges and resolves configuration settings with the 
 | :--- | :--- | :--- | :--- | :--- |
 | **Start Date** | `-s`, `--start` | `DownloaderConfiguration__Start` | *Required* | Inclusive download start date/time (e.g., `yyyy-MM-dd` or `yyyy-MM-ddTHH:mm:ss`) |
 | **End Date** | `-e`, `--end` | `DownloaderConfiguration__End` | *Required* | Inclusive download end date/time (e.g., `yyyy-MM-dd` or `yyyy-MM-ddTHH:mm:ss`) |
-| **Location IDs** | `-l`, `--location` | `DownloaderConfiguration__LocationIdentifiers__0` | *Required* | One or more space-separated ATSPM controller location identifiers (e.g. `1014 1015` or `-l 1014 -l 1015`). For environment arrays, use indices: `LocationIdentifiers__0`, `LocationIdentifiers__1`, etc. |
+| **Location Identifiers** | `-l`, `--location` | `DownloaderConfiguration__LocationIdentifiers` | *Required* | One or more space-separated ATSPM controller location identifiers (e.g. `1014 1015` or `-l 1014 -l 1015`) |
 | **Data Type** | `-t`, `--data-type` | `DownloaderConfiguration__DataType` | *Optional* | Specialized stream category type (e.g., `IndianaEvent`, `ApproachPcdAggregation`) |
 | **API Key** | `-k`, `--api-key` | `DownloaderConfiguration__ApiKey` | *Optional* | The authentication API key provided by the ATSPM instance |
 | **API URL** | `-u`, `--api-url` | `DownloaderConfiguration__ApiUrl` | *Optional* | Base URL of the API (e.g., `https://your-atspm-instance.gov/data`) |
