@@ -75,6 +75,44 @@ You can persist your common configurations (such as endpoint URLs and API keys) 
 
 ---
 
+## 🚦 Traffic Engineer Quick-Start (Standalone Executable)
+
+If you are a traffic engineer or analyst, you do not need to install .NET, Docker, or any software development tools to run this utility. You can run the standalone pre-compiled executable directly.
+
+### Step 1: Download & Extract
+1. Go to the [GitHub Releases page](https://github.com/opensourcetransportation/atspm-data-downloader/releases).
+2. Download **`atspm-downloader-win-x64.zip`** from the assets list under the latest version.
+3. Extract the contents of the `.zip` file into a folder where you want to work (e.g. `C:\TrafficTools\Downloader`).
+
+### Step 2: Set your API Credentials
+To avoid typing your credentials in every command, configure them in your local settings:
+1. Open the extracted folder and edit the `appsettings.json` file with any text editor (like **Notepad**).
+2. Set your agency's API URL and API Key:
+   ```json
+   "ApiKey": "YOUR_ACTUAL_API_KEY_HERE",
+   "ApiUrl": "https://your-agency-atspm.gov/data/"
+   ```
+3. Save and close the file.
+
+### Step 3: Run via Command Prompt
+1. Open your extracted folder in Windows File Explorer.
+2. Type `cmd` into the address bar at the top of the window and press **Enter** to open a command prompt directly inside that folder.
+3. Run one of the following commands to download your data:
+
+#### Example A: Download Raw Event Logs (Newline-delimited JSON)
+```bash
+atspm-data-downloader.exe download events --location 1014 --start 2026-07-24 --end 2026-07-25 --output ./output
+```
+
+#### Example B: Download Approach Aggregations Directly to CSV (Spreadsheet)
+```bash
+atspm-data-downloader.exe download aggregations --location 1014 --start 2026-07-24 --end 2026-07-25 --format csv --output ./output
+```
+
+*Note: Your files will be saved in a new folder named `output` inside your current folder.*
+
+---
+
 ## 🚀 Running locally (CLI Examples)
 
 Below are some common real-world execution examples when running directly via the `.NET CLI`:
