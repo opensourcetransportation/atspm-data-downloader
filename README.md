@@ -171,8 +171,6 @@ DownloaderConfiguration__End=2026-07-25
 
 #### Scenario A: Download Raw Event Logs (`docker-compose-events.yml`)
 ```yaml
-version: '3.8'
-
 services:
   event-downloader:
     image: ghcr.io/opensourcetransportation/atspm-data-downloader:latest
@@ -192,8 +190,6 @@ services:
 
 #### Scenario B: Download Approach Aggregations (`docker-compose-aggregations.yml`)
 ```yaml
-version: '3.8'
-
 services:
   aggregation-downloader:
     image: ghcr.io/opensourcetransportation/atspm-data-downloader:latest
