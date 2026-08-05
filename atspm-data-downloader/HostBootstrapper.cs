@@ -33,9 +33,9 @@ public static class HostBootstrapper
     /// Executes the generic host for a specific downloader service and configuration option.
     /// </summary>
     /// <typeparam name="TService">The target IHostedService class to execute.</typeparam>
-    /// <param name="options">The initialized command-line options object.</param>
+    /// <param name="configureAction">The action callback to configure downloader options.</param>
     /// <returns>Returns a task representing the asynchronous execution.</returns>
-    public static async Task RunHostAsync<TService>(DownloaderConfiguration options)
+    public static async Task RunHostAsync<TService>(Action<DownloaderConfiguration> configureAction)
         where TService : class, IHostedService
     {
         var builder = Host.CreateDefaultBuilder();
@@ -44,14 +44,17 @@ public static class HostBootstrapper
         {
             services.AddOptions<DownloaderConfiguration>()
                 .Bind(hostContext.Configuration.GetSection("DownloaderConfiguration"))
-                .Configure(opt => PropertyCopier.Copy(options, opt))
+                .Configure(configureAction)
                 .Validate(opt => 
                 {
                     return opt.Start != default && 
                            opt.End != default && 
+                           opt.Start <= opt.End &&
                            opt.LocationIdentifiers != null && 
-                           opt.LocationIdentifiers.Count > 0;
-                }, "Required downloader configuration options are missing. Please provide '--start', '--end', and '--location' options via command line, environment variables (e.g. DownloaderConfiguration__Start), or appsettings.json.")
+                           opt.LocationIdentifiers.Count > 0 &&
+                           !string.IsNullOrWhiteSpace(opt.ApiUrl) &&
+                           Uri.TryCreate(opt.ApiUrl, UriKind.Absolute, out _);
+                }, "Required downloader configuration options are missing or invalid. Please provide '--start', '--end', '--location', and '--api-url' (a valid absolute URI) options via command line, environment variables (e.g. DownloaderConfiguration__Start), or appsettings.json, and ensure start date is before or equal to end date.")
                 .ValidateOnStart();
 
             services.AddSingleton(sp => sp.GetRequiredService<IOptions<DownloaderConfiguration>>().Value);

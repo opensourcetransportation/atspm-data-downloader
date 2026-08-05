@@ -98,33 +98,32 @@ public class DownloadCommand : Command
     protected static async Task RunDownloaderAsync<TService>(System.CommandLine.Invocation.InvocationContext context)
         where TService : class, Microsoft.Extensions.Hosting.IHostedService
     {
-        var options = new DownloaderConfiguration();
+        await HostBootstrapper.RunHostAsync<TService>(options =>
+        {
+            if (IsSpecified(context.ParseResult, StartOption))
+                options.Start = context.ParseResult.GetValueForOption(StartOption);
 
-        if (IsSpecified(context.ParseResult, StartOption))
-            options.Start = context.ParseResult.GetValueForOption(StartOption);
+            if (IsSpecified(context.ParseResult, EndOption))
+                options.End = context.ParseResult.GetValueForOption(EndOption);
 
-        if (IsSpecified(context.ParseResult, EndOption))
-            options.End = context.ParseResult.GetValueForOption(EndOption);
+            if (IsSpecified(context.ParseResult, LocationOption))
+                options.LocationIdentifiers = context.ParseResult.GetValueForOption(LocationOption) ?? new();
 
-        if (IsSpecified(context.ParseResult, LocationOption))
-            options.LocationIdentifiers = context.ParseResult.GetValueForOption(LocationOption) ?? new();
+            if (IsSpecified(context.ParseResult, DataTypeOption))
+                options.DataType = context.ParseResult.GetValueForOption(DataTypeOption);
 
-        if (IsSpecified(context.ParseResult, DataTypeOption))
-            options.DataType = context.ParseResult.GetValueForOption(DataTypeOption);
+            if (IsSpecified(context.ParseResult, ApiKeyOption))
+                options.ApiKey = context.ParseResult.GetValueForOption(ApiKeyOption);
 
-        if (IsSpecified(context.ParseResult, ApiKeyOption))
-            options.ApiKey = context.ParseResult.GetValueForOption(ApiKeyOption);
+            if (IsSpecified(context.ParseResult, ApiUrlOption))
+                options.ApiUrl = context.ParseResult.GetValueForOption(ApiUrlOption);
 
-        if (IsSpecified(context.ParseResult, ApiUrlOption))
-            options.ApiUrl = context.ParseResult.GetValueForOption(ApiUrlOption);
+            if (IsSpecified(context.ParseResult, FormatOption))
+                options.Format = context.ParseResult.GetValueForOption(FormatOption)!;
 
-        if (IsSpecified(context.ParseResult, FormatOption))
-            options.Format = context.ParseResult.GetValueForOption(FormatOption)!;
-
-        if (IsSpecified(context.ParseResult, OutputOption))
-            options.OutputPath = context.ParseResult.GetValueForOption(OutputOption);
-
-        await HostBootstrapper.RunHostAsync<TService>(options);
+            if (IsSpecified(context.ParseResult, OutputOption))
+                options.OutputPath = context.ParseResult.GetValueForOption(OutputOption);
+        });
     }
 
     private static bool IsSpecified(System.CommandLine.Parsing.ParseResult parseResult, Option option)

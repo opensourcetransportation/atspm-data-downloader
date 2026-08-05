@@ -333,10 +333,10 @@ public class DownloaderServiceTests : IDisposable
         var httpClient = new HttpClient(_mockHttpMessageHandler.Object);
         var service = CreateService(config, httpClient);
 
-        // Act
-        await service.Process(_mockScope.Object);
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<Exception>(() => service.Process(_mockScope.Object));
+        Assert.Contains("FAIL_LOC", exception.Message);
 
-        // Assert
         // The failed location shouldn't produce a file
         var failedFilename = "FAIL_LOC-aggregations-20260801000000-20260801010000.ndjson";
         Assert.False(File.Exists(Path.Combine(_tempOutputDir, failedFilename)));

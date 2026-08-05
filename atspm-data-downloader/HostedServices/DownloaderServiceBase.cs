@@ -35,7 +35,6 @@ public abstract class DownloaderServiceBase : HostedServiceBase
     private readonly HttpClient _httpClient;
     private readonly DownloaderConfiguration _options;
     private readonly IHostApplicationLifetime _lifetime;
-    private readonly ILogger _logger;
     private readonly IDownloaderLogMessages _log;
 
     /// <summary>
@@ -52,7 +51,6 @@ public abstract class DownloaderServiceBase : HostedServiceBase
         _httpClient = httpClient;
         _options = options.Value;
         _lifetime = lifetime;
-        _logger = logger;
         _log = log;
     }
 
@@ -77,8 +75,14 @@ public abstract class DownloaderServiceBase : HostedServiceBase
 
         foreach (var locationIdentifier in _options.LocationIdentifiers)
         {
+            var outputFilePath = GetOutputFilePath(locationIdentifier, DatasetLabel, ext);
+            var tempFilePath = outputFilePath + ".tmp";
+            bool success = false;
+
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 _log.DownloadStarting(locationIdentifier, _options.Start, _options.End);
 
                 var startStr = Uri.EscapeDataString(_options.Start.ToString("yyyy-MM-ddTHH:mm:ss"));
@@ -98,6 +102,7 @@ public abstract class DownloaderServiceBase : HostedServiceBase
                 _log.RequestingUrl(requestUri.ToString());
 
                 using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
+                request.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/x-ndjson"));
                 if (!string.IsNullOrEmpty(_options.ApiKey))
                 {
                     request.Headers.Add("X-API-KEY", _options.ApiKey);
@@ -115,38 +120,55 @@ public abstract class DownloaderServiceBase : HostedServiceBase
                 using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
                 using var reader = new StreamReader(stream);
 
-                var outputFilePath = GetOutputFilePath(locationIdentifier, DatasetLabel, ext);
                 _log.SavingDownload(DatasetLabel, outputFilePath);
 
-                using TextWriter writer = new StreamWriter(new FileStream(outputFilePath, FileMode.Create, FileAccess.Write, FileShare.Read));
-
-                int recordCount = 0;
-
-                if (format == DownloadFormat.Csv)
+                using (TextWriter writer = new StreamWriter(new FileStream(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.Read)))
                 {
-                    recordCount = await ProcessCsvStreamAsync(reader, writer);
-                }
-                else if (format == DownloadFormat.Json)
-                {
-                    recordCount = await ProcessJsonStreamAsync(reader, writer);
-                }
-                else
-                {
-                    recordCount = await ProcessNdJsonStreamAsync(reader, writer);
+                    int recordCount = 0;
+
+                    if (format == DownloadFormat.Csv)
+                    {
+                        recordCount = await ProcessCsvStreamAsync(reader, writer, cancellationToken);
+                    }
+                    else if (format == DownloadFormat.Json)
+                    {
+                        recordCount = await ProcessJsonStreamAsync(reader, writer, cancellationToken);
+                    }
+                    else
+                    {
+                        recordCount = await ProcessNdJsonStreamAsync(reader, writer, cancellationToken);
+                    }
+
+                    _log.DownloadCompleted(recordCount);
                 }
 
-                _log.DownloadCompleted(recordCount);
+                File.Move(tempFilePath, outputFilePath, overwrite: true);
+                success = true;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
                 _log.DownloadFailedException(ex);
                 failedLocations.Add(locationIdentifier);
             }
+            finally
+            {
+                if (!success && File.Exists(tempFilePath))
+                {
+                    try { File.Delete(tempFilePath); } catch { }
+                }
+            }
         }
 
         if (failedLocations.Count > 0)
         {
-            _log.DownloadsFailedSummary(string.Join(", ", failedLocations));
+            var summary = string.Join(", ", failedLocations);
+            _log.DownloadsFailedSummary(summary);
+            _lifetime.StopApplication();
+            throw new Exception($"Downloads failed for the following locations: {summary}");
         }
 
         _lifetime.StopApplication();
@@ -178,15 +200,15 @@ public abstract class DownloaderServiceBase : HostedServiceBase
         return Path.Combine(dir, filename);
     }
 
-    private async Task<int> ProcessNdJsonStreamAsync(StreamReader reader, TextWriter writer)
+    private async Task<int> ProcessNdJsonStreamAsync(StreamReader reader, TextWriter writer, CancellationToken cancellationToken)
     {
         int count = 0;
-        while (!reader.EndOfStream)
+        string? line;
+        while ((line = await reader.ReadLineAsync(cancellationToken)) is not null)
         {
-            var line = await reader.ReadLineAsync();
             if (string.IsNullOrWhiteSpace(line)) continue;
 
-            await writer.WriteLineAsync(line);
+            await writer.WriteLineAsync(line.AsMemory(), cancellationToken);
             count++;
 
             if (count % 100 == 0)
@@ -197,24 +219,24 @@ public abstract class DownloaderServiceBase : HostedServiceBase
         return count;
     }
 
-    private async Task<int> ProcessJsonStreamAsync(StreamReader reader, TextWriter writer)
+    private async Task<int> ProcessJsonStreamAsync(StreamReader reader, TextWriter writer, CancellationToken cancellationToken)
     {
-        await writer.WriteAsync("[");
+        await writer.WriteAsync("[".AsMemory(), cancellationToken);
         bool isFirst = true;
         int count = 0;
+        string? line;
 
-        while (!reader.EndOfStream)
+        while ((line = await reader.ReadLineAsync(cancellationToken)) is not null)
         {
-            var line = await reader.ReadLineAsync();
             if (string.IsNullOrWhiteSpace(line)) continue;
 
             if (!isFirst)
             {
-                await writer.WriteAsync(",");
+                await writer.WriteAsync(",".AsMemory(), cancellationToken);
             }
             isFirst = false;
 
-            await writer.WriteAsync(line);
+            await writer.WriteAsync(line.AsMemory(), cancellationToken);
             count++;
 
             if (count % 100 == 0)
@@ -223,19 +245,19 @@ public abstract class DownloaderServiceBase : HostedServiceBase
             }
         }
 
-        await writer.WriteAsync("]");
+        await writer.WriteAsync("]".AsMemory(), cancellationToken);
         return count;
     }
 
-    private async Task<int> ProcessCsvStreamAsync(StreamReader reader, TextWriter writer)
+    private async Task<int> ProcessCsvStreamAsync(StreamReader reader, TextWriter writer, CancellationToken cancellationToken)
     {
         bool headerWritten = false;
         string[]? headers = null;
         int count = 0;
+        string? line;
 
-        while (!reader.EndOfStream)
+        while ((line = await reader.ReadLineAsync(cancellationToken)) is not null)
         {
-            var line = await reader.ReadLineAsync();
             if (string.IsNullOrWhiteSpace(line)) continue;
 
             using var doc = JsonDocument.Parse(line);
@@ -252,7 +274,7 @@ public abstract class DownloaderServiceBase : HostedServiceBase
                     headerList.Add(prop.Name);
                 }
                 headers = headerList.ToArray();
-                await writer.WriteLineAsync(string.Join(",", Array.ConvertAll(headers, EscapeCsvValue)));
+                await writer.WriteLineAsync(string.Join(",", Array.ConvertAll(headers, EscapeCsvValue)).AsMemory(), cancellationToken);
                 headerWritten = true;
             }
 
@@ -275,7 +297,7 @@ public abstract class DownloaderServiceBase : HostedServiceBase
                         values[i] = string.Empty;
                     }
                 }
-                await writer.WriteLineAsync(string.Join(",", Array.ConvertAll(values, EscapeCsvValue)));
+                await writer.WriteLineAsync(string.Join(",", Array.ConvertAll(values, EscapeCsvValue)).AsMemory(), cancellationToken);
             }
 
             count++;

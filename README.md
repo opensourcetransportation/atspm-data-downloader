@@ -64,7 +64,7 @@ You can persist your common configurations (such as endpoint URLs and API keys) 
       "1015",
       "2023"
     ],
-    "DataType": null,
+    "DataType": "IndianaEvent",
     "ApiKey": "YOUR_API_KEY_HERE",
     "ApiUrl": "https://your-atspm-instance.gov/data/",
     "Format": "ndjson",
@@ -137,20 +137,20 @@ docker pull ghcr.io/opensourcetransportation/atspm-data-downloader:latest
 ### Docker Run Examples
 You can run the utility as a one-off task using arguments passed straight to the container's entrypoint, mounting a local volume to save output files.
 
-#### Event Log Download:
+#### Event Log Download (with optional specialized `IndianaEvent` data type):
 ```bash
 docker run --rm \
   -v ${PWD}/output:/app/output \
   ghcr.io/opensourcetransportation/atspm-data-downloader:latest \
-  download events -l 1014 -s 2026-07-24 -e 2026-07-25 -k YOUR_API_KEY_HERE -u https://your-atspm-instance.gov/data -o /app/output
+  download events -l 1014 -s 2026-07-24 -e 2026-07-25 -t IndianaEvent -k YOUR_API_KEY_HERE -u https://your-atspm-instance.gov/data -o /app/output
 ```
 
-#### Aggregations Download:
+#### Aggregations Download (with optional specialized `ApproachPcdAggregation` data type):
 ```bash
 docker run --rm \
   -v ${PWD}/output:/app/output \
   ghcr.io/opensourcetransportation/atspm-data-downloader:latest \
-  download aggregations -l 1014 -s 2026-07-24 -e 2026-07-25 -k YOUR_API_KEY_HERE -u https://your-atspm-instance.gov/data -o /app/output
+  download aggregations -l 1014 -s 2026-07-24 -e 2026-07-25 -t ApproachPcdAggregation -k YOUR_API_KEY_HERE -u https://your-atspm-instance.gov/data -o /app/output
 ```
 
 ---
@@ -165,6 +165,7 @@ DownloaderConfiguration__ApiKey=YOUR_API_KEY_HERE
 DownloaderConfiguration__ApiUrl=https://your-atspm-instance.gov/data
 DownloaderConfiguration__Start=2026-07-24
 DownloaderConfiguration__End=2026-07-25
+DownloaderConfiguration__DataType=IndianaEvent
 ```
 
 #### Scenario A: Download Raw Event Logs (`docker-compose.yml`)
@@ -178,6 +179,7 @@ services:
       - DownloaderConfiguration__ApiUrl=${DownloaderConfiguration__ApiUrl}
       - DownloaderConfiguration__Start=${DownloaderConfiguration__Start}
       - DownloaderConfiguration__End=${DownloaderConfiguration__End}
+      - DownloaderConfiguration__DataType=${DownloaderConfiguration__DataType}
       - DownloaderConfiguration__Format=ndjson
       - DownloaderConfiguration__OutputPath=/app/output
     volumes:
@@ -202,6 +204,7 @@ services:
       - DownloaderConfiguration__ApiUrl=${DownloaderConfiguration__ApiUrl}
       - DownloaderConfiguration__Start=${DownloaderConfiguration__Start}
       - DownloaderConfiguration__End=${DownloaderConfiguration__End}
+      - DownloaderConfiguration__DataType=ApproachPcdAggregation
       - DownloaderConfiguration__Format=csv
       - DownloaderConfiguration__OutputPath=/app/output
     volumes:
