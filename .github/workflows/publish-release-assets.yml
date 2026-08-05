@@ -24,15 +24,15 @@ jobs:
         include:
           - os: windows-latest
             runtime: win-x64
-            archive_cmd: Compress-Archive -Path publish/atspm-data-downloader.exe -DestinationPath atspm-downloader-win-x64.zip
+            archive_cmd: Compress-Archive -Path publish/* -DestinationPath atspm-downloader-win-x64.zip
             archive_file: atspm-downloader-win-x64.zip
           - os: ubuntu-latest
             runtime: linux-x64
-            archive_cmd: tar -czvf atspm-downloader-linux-x64.tar.gz -C publish atspm-data-downloader
+            archive_cmd: tar -czvf atspm-downloader-linux-x64.tar.gz -C publish .
             archive_file: atspm-downloader-linux-x64.tar.gz
           - os: macos-latest
             runtime: osx-x64
-            archive_cmd: tar -czvf atspm-downloader-osx-x64.tar.gz -C publish atspm-data-downloader
+            archive_cmd: tar -czvf atspm-downloader-osx-x64.tar.gz -C publish .
             archive_file: atspm-downloader-osx-x64.tar.gz
 
     steps:

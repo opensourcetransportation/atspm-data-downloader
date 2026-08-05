@@ -111,6 +111,17 @@ atspm-data-downloader.exe download aggregations --location 1014 --start 2026-07-
 
 *Note: Your files will be saved in a new folder named `output` inside your current folder.*
 
+> [!IMPORTANT]
+> **Windows SmartScreen Security Warning:**
+> Because this is a custom-compiled utility, Microsoft Defender SmartScreen might block it on its first run with an *"unrecognized app"* warning.
+>
+> To permanently unblock it:
+> 1. Right-click the **`atspm-data-downloader.exe`** file in Windows File Explorer and select **Properties**.
+> 2. In the **General** tab at the bottom, check the box that says **"Unblock"**.
+> 3. Click **Apply** and then **OK**.
+>
+> *(Alternatively, you can click **"More info"** on the blue SmartScreen popup and select **"Run anyway"**).*
+
 ---
 
 ## 🚀 Running locally (CLI Examples)
