@@ -20,6 +20,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using System.Net;
 
 namespace atspm_data_downloader;
 
@@ -50,7 +51,11 @@ public static class HostBootstrapper
 
             services.AddSingleton(sp => sp.GetRequiredService<IOptions<DownloaderConfiguration>>().Value);
 
-            services.AddHttpClient<TService>();
+            services.AddHttpClient<TService>()
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                AutomaticDecompression = DecompressionMethods.All
+            });
             services.AddHostedService<TService>();
         });
 
