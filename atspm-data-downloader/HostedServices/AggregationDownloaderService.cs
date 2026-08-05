@@ -21,13 +21,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System;
 using System.Diagnostics;
-using System.IO;
-using System.Net.Http;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using Utah.Udot.Atspm.Infrastructure.Services.HostedServices;
 
 namespace atspm_data_downloader.HostedServices;
@@ -38,7 +33,7 @@ namespace atspm_data_downloader.HostedServices;
 public class AggregationDownloaderService : HostedServiceBase
 {
     private readonly HttpClient _httpClient;
-    private readonly AggregationDownloaderOptions _options;
+    private readonly DownloaderConfiguration _options;
     private readonly IHostApplicationLifetime _lifetime;
     private readonly ILogger<AggregationDownloaderService> _logger;
     private readonly AggregationDownloaderLogMessages _log;
@@ -54,7 +49,7 @@ public class AggregationDownloaderService : HostedServiceBase
     public AggregationDownloaderService(
         IServiceScopeFactory serviceProvider,
         HttpClient httpClient,
-        IOptions<AggregationDownloaderOptions> options,
+        IOptions<DownloaderConfiguration> options,
         IHostApplicationLifetime lifetime,
         ILogger<AggregationDownloaderService> logger) : base(logger, serviceProvider)
     {
@@ -74,64 +69,111 @@ public class AggregationDownloaderService : HostedServiceBase
     /// <returns>Returns a task tracking execution completion.</returns>
     public override async Task Process(IServiceScope scope, Stopwatch? stopwatch = null, CancellationToken cancellationToken = default)
     {
-        _log.DownloadStarting(_options.LocationId, _options.Start, _options.End);
+        var format = _options.Format;
+        var ext = format.ToString().ToLowerInvariant();
+        var failedLocations = new System.Collections.Generic.List<string>();
 
-        var startStr = Uri.EscapeDataString(_options.Start.ToString("yyyy-MM-ddTHH:mm:ss"));
-        var endStr = Uri.EscapeDataString(_options.End.ToString("yyyy-MM-ddTHH:mm:ss"));
-
-        string relativeUrl;
-        if (string.IsNullOrEmpty(_options.DataType))
+        foreach (var locationIdentifier in _options.LocationIdentifiers)
         {
-            relativeUrl = $"api/v1/Aggregation/StreamData/{_options.LocationId}?start={startStr}&end={endStr}";
+            try
+            {
+                _log.DownloadStarting(locationIdentifier, _options.Start, _options.End);
+
+                var startStr = Uri.EscapeDataString(_options.Start.ToString("yyyy-MM-ddTHH:mm:ss"));
+                var endStr = Uri.EscapeDataString(_options.End.ToString("yyyy-MM-ddTHH:mm:ss"));
+
+                string relativeUrl;
+                if (string.IsNullOrEmpty(_options.DataType))
+                {
+                    relativeUrl = $"api/v1/Aggregation/StreamData/{locationIdentifier}?start={startStr}&end={endStr}";
+                }
+                else
+                {
+                    relativeUrl = $"api/v1/Aggregation/StreamData/{locationIdentifier}/{Uri.EscapeDataString(_options.DataType)}?start={startStr}&end={endStr}";
+                }
+
+                var requestUri = new Uri(new Uri(_options.ApiUrl!.TrimEnd('/') + "/"), relativeUrl);
+                _log.RequestingUrl(requestUri.ToString());
+
+                using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
+                if (!string.IsNullOrEmpty(_options.ApiKey))
+                {
+                    request.Headers.Add("X-API-KEY", _options.ApiKey);
+                }
+
+                using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                    _log.ApiErrorResponse((int)response.StatusCode, body);
+                    throw new Exception($"API returned error code {response.StatusCode} for location {locationIdentifier}.");
+                }
+
+                using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+                using var reader = new StreamReader(stream);
+
+                var outputFilePath = GetOutputFilePath(locationIdentifier, "aggregations", ext);
+                _logger.LogInformation("Saving aggregations download to {filePath}", outputFilePath);
+
+                using TextWriter writer = new StreamWriter(new FileStream(outputFilePath, FileMode.Create, FileAccess.Write, FileShare.Read));
+
+                int recordCount = 0;
+
+                if (format == DownloadFormat.Csv)
+                {
+                    recordCount = await ProcessCsvStreamAsync(reader, writer);
+                }
+                else if (format == DownloadFormat.Json)
+                {
+                    recordCount = await ProcessJsonStreamAsync(reader, writer);
+                }
+                else
+                {
+                    recordCount = await ProcessNdJsonStreamAsync(reader, writer);
+                }
+
+                _log.DownloadCompleted(recordCount);
+            }
+            catch (Exception ex)
+            {
+                _log.DownloadFailedException(ex);
+                failedLocations.Add(locationIdentifier);
+            }
         }
-        else
+
+        if (failedLocations.Count > 0)
         {
-            relativeUrl = $"api/v1/Aggregation/StreamData/{_options.LocationId}/{Uri.EscapeDataString(_options.DataType)}?start={startStr}&end={endStr}";
+            _logger.LogError("Downloads failed for the following locations: {locations}", string.Join(", ", failedLocations));
         }
 
-        var requestUri = new Uri(new Uri(_options.ApiUrl!.TrimEnd('/') + "/"), relativeUrl);
-        _log.RequestingUrl(requestUri.ToString());
-
-        using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
-        if (!string.IsNullOrEmpty(_options.ApiKey))
-        {
-            request.Headers.Add("X-API-KEY", _options.ApiKey);
-        }
-
-        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            var body = await response.Content.ReadAsStringAsync(cancellationToken);
-            _log.ApiErrorResponse((int)response.StatusCode, body);
-            throw new Exception($"API returned error code {response.StatusCode}.");
-        }
-
-        using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        using var reader = new StreamReader(stream);
-
-        using TextWriter writer = !string.IsNullOrEmpty(_options.OutputPath)
-            ? new StreamWriter(new FileStream(_options.OutputPath, FileMode.Create, FileAccess.Write, FileShare.Read))
-            : Console.Out;
-
-        var format = _options.Format.ToLowerInvariant();
-        int recordCount = 0;
-
-        if (format == "csv")
-        {
-            recordCount = await ProcessCsvStreamAsync(reader, writer);
-        }
-        else if (format == "json")
-        {
-            recordCount = await ProcessJsonStreamAsync(reader, writer);
-        }
-        else
-        {
-            recordCount = await ProcessNdJsonStreamAsync(reader, writer);
-        }
-
-        _log.DownloadCompleted(recordCount);
         _lifetime.StopApplication();
+    }
+
+    private string GetOutputFilePath(string locationIdentifier, string dataType, string format)
+    {
+        var dir = _options.OutputPath;
+        if (string.IsNullOrEmpty(dir))
+        {
+            dir = Directory.GetCurrentDirectory();
+        }
+
+        if (!Directory.Exists(dir))
+        {
+            Directory.CreateDirectory(dir);
+        }
+
+        var startStr = _options.Start.ToString("yyyyMMddHHmmss");
+        var endStr = _options.End.ToString("yyyyMMddHHmmss");
+        var ext = format.ToLowerInvariant();
+
+        var typeStr = string.IsNullOrEmpty(_options.DataType)
+            ? dataType
+            : $"{dataType}-{_options.DataType.Replace('/', '_').Replace('\\', '_')}";
+
+        var filename = $"{locationIdentifier}-{typeStr}-{startStr}-{endStr}.{ext}";
+
+        return Path.Combine(dir, filename);
     }
 
     private async Task<int> ProcessNdJsonStreamAsync(StreamReader reader, TextWriter writer)
@@ -141,7 +183,7 @@ public class AggregationDownloaderService : HostedServiceBase
         {
             var line = await reader.ReadLineAsync();
             if (string.IsNullOrWhiteSpace(line)) continue;
-            
+
             await writer.WriteLineAsync(line);
             count++;
 

@@ -15,7 +15,6 @@
 // limitations under the License.
 #endregion
 
-using System;
 using Microsoft.Extensions.Logging;
 
 namespace atspm_data_downloader.Logging;
@@ -39,11 +38,11 @@ public partial class EventLogDownloaderLogMessages
     /// <summary>
     /// Logs when an event log stream download starts.
     /// </summary>
-    /// <param name="locationId">The target location ID.</param>
+    /// <param name="locationIdentifier">The target location identifier.</param>
     /// <param name="start">The start date/time constraint.</param>
     /// <param name="end">The end date/time constraint.</param>
-    [LoggerMessage(EventId = 2000, EventName = "Download Starting", Level = LogLevel.Information, Message = "Starting Event Logs Stream Download for location {locationId} from {start} to {end}")]
-    public partial void DownloadStarting(string locationId, DateTime start, DateTime end);
+    [LoggerMessage(EventId = 2000, EventName = "Download Starting", Level = LogLevel.Information, Message = "Starting Event Logs Stream Download for location {locationIdentifier} from {start} to {end}")]
+    public partial void DownloadStarting(string locationIdentifier, DateTime start, DateTime end);
 
     /// <summary>
     /// Logs the API endpoint request URL for debugging.

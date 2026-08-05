@@ -15,7 +15,6 @@
 // limitations under the License.
 #endregion
 
-using System;
 using System.CommandLine;
 
 namespace atspm_data_downloader.Commands.Options;
@@ -32,15 +31,6 @@ public class StartOption : Option<DateTime>
         aliases: new[] { "--start", "-s" },
         description: "Inclusive start date/time (e.g. yyyy-MM-dd or yyyy-MM-ddTHH:mm:ss)")
     {
-        var envVal = Environment.GetEnvironmentVariable("ATSPM_START");
-        if (DateTime.TryParse(envVal, out var defaultVal))
-        {
-            this.SetDefaultValue(defaultVal);
-            IsRequired = false;
-        }
-        else
-        {
-            IsRequired = true;
-        }
+        IsRequired = true;
     }
 }

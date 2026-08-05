@@ -15,7 +15,7 @@
 // limitations under the License.
 #endregion
 
-using System;
+using System.Collections;
 using System.Reflection;
 
 namespace atspm_data_downloader.Configuration;
@@ -26,7 +26,7 @@ namespace atspm_data_downloader.Configuration;
 public static class PropertyCopier
 {
     /// <summary>
-    /// Copies public, instance, read-write property values from a source object to a destination target.
+    /// Copies public, instance, read-write property values from a source object to a destination target if they are not default or null.
     /// </summary>
     /// <typeparam name="T">The type of the source and target options structures.</typeparam>
     /// <param name="source">The source options model containing populated CLI inputs.</param>
@@ -39,8 +39,34 @@ public static class PropertyCopier
             if (prop.CanRead && prop.CanWrite)
             {
                 var val = prop.GetValue(source);
-                prop.SetValue(target, val);
+                if (val != null && !IsDefaultValue(val))
+                {
+                    prop.SetValue(target, val);
+                }
             }
         }
+    }
+
+    private static bool IsDefaultValue(object value)
+    {
+        if (value is DateTime dt)
+        {
+            return dt == default;
+        }
+        if (value is string s)
+        {
+            return string.IsNullOrEmpty(s);
+        }
+        if (value is IList list)
+        {
+            return list.Count == 0;
+        }
+
+        var type = value.GetType();
+        if (type.IsValueType)
+        {
+            return value.Equals(Activator.CreateInstance(type));
+        }
+        return false;
     }
 }

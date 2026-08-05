@@ -15,7 +15,6 @@
 // limitations under the License.
 #endregion
 
-using System;
 using System.CommandLine;
 
 namespace atspm_data_downloader.Commands.Options;

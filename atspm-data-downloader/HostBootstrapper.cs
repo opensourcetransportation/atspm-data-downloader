@@ -16,10 +16,10 @@
 #endregion
 
 using atspm_data_downloader.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using System.Threading.Tasks;
 
 namespace atspm_data_downloader;
 
@@ -32,24 +32,23 @@ public static class HostBootstrapper
     /// Executes the generic host for a specific downloader service and configuration option.
     /// </summary>
     /// <typeparam name="TService">The target IHostedService class to execute.</typeparam>
-    /// <typeparam name="TOptions">The configuration options mapping class.</typeparam>
     /// <param name="options">The initialized command-line options object.</param>
     /// <returns>Returns a task representing the asynchronous execution.</returns>
-    public static async Task RunHostAsync<TService, TOptions>(TOptions options)
+    public static async Task RunHostAsync<TService>(DownloaderConfiguration options)
         where TService : class, IHostedService
-        where TOptions : class, IDownloaderOptions, new()
     {
         var builder = Host.CreateDefaultBuilder();
 
         builder.ConfigureServices((hostContext, services) =>
         {
-            services.Configure<TOptions>(opt =>
+            services.Configure<DownloaderConfiguration>(opt =>
             {
+                hostContext.Configuration.GetSection("DownloaderConfiguration").Bind(opt);
+
                 PropertyCopier.Copy(options, opt);
-                opt.ApplyConfiguration(hostContext.Configuration);
             });
 
-            services.AddSingleton(sp => sp.GetRequiredService<IOptions<TOptions>>().Value);
+            services.AddSingleton(sp => sp.GetRequiredService<IOptions<DownloaderConfiguration>>().Value);
 
             services.AddHttpClient<TService>();
             services.AddHostedService<TService>();

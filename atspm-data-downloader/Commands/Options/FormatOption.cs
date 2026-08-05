@@ -15,7 +15,7 @@
 // limitations under the License.
 #endregion
 
-using System;
+using atspm_data_downloader.Configuration;
 using System.CommandLine;
 
 namespace atspm_data_downloader.Commands.Options;
@@ -23,16 +23,22 @@ namespace atspm_data_downloader.Commands.Options;
 /// <summary>
 /// Command-line option for specifying the output file format (json, csv, ndjson).
 /// </summary>
-public class FormatOption : Option<string>
+public class FormatOption : Option<DownloadFormat>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="FormatOption"/> class.
     /// </summary>
     public FormatOption() : base(
         aliases: new[] { "--format", "-f" },
-        getDefaultValue: () => "ndjson",
-        description: "Output format (json, csv, ndjson)")
+        getDefaultValue: () => DownloadFormat.NdJson,
+        description: "Output format")
     {
-        this.FromAmong("json", "csv", "ndjson");
+        ArgumentHelpName = "csv|json|ndjson";
+
+        var names = Enum.GetNames<DownloadFormat>()
+            .Select(n => n.ToLowerInvariant())
+            .ToArray();
+
+        this.FromAmong(names);
     }
 }

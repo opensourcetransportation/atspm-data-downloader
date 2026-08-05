@@ -15,7 +15,6 @@
 // limitations under the License.
 #endregion
 
-using System;
 using System.CommandLine;
 
 namespace atspm_data_downloader.Commands.Options;
@@ -30,7 +29,7 @@ public class OutputOption : Option<string?>
     /// </summary>
     public OutputOption() : base(
         aliases: new[] { "--output", "-o" },
-        description: "File path to save the output (optional, defaults to stdout)")
+        description: "Directory path to save the output files (optional, defaults to current directory)")
     {
     }
 }

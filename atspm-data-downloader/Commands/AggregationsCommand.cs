@@ -15,57 +15,24 @@
 // limitations under the License.
 #endregion
 
-using System;
-using System.CommandLine;
-using atspm_data_downloader.Commands.Options;
-using atspm_data_downloader.Configuration;
 using atspm_data_downloader.HostedServices;
+using System.CommandLine;
 
 namespace atspm_data_downloader.Commands;
 
 /// <summary>
 /// Subcommand for downloading aggregated ATSPM data streams.
 /// </summary>
-public class AggregationsCommand : Command
+public class AggregationsCommand : DownloadCommand
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="AggregationsCommand"/> class.
     /// </summary>
     public AggregationsCommand() : base("aggregations", "Download aggregated ATSPM data streams")
     {
-        var startOption = new StartOption();
-        var endOption = new EndOption();
-        var locationOption = new LocationOption();
-        var dataTypeOption = new DataTypeOption();
-        var apiKeyOption = new ApiKeyOption();
-        var apiUrlOption = new ApiUrlOption();
-        var formatOption = new FormatOption();
-        var outputOption = new OutputOption();
-
-        AddOption(startOption);
-        AddOption(endOption);
-        AddOption(locationOption);
-        AddOption(dataTypeOption);
-        AddOption(apiKeyOption);
-        AddOption(apiUrlOption);
-        AddOption(formatOption);
-        AddOption(outputOption);
-
         this.SetHandler(async (context) =>
         {
-            var options = new AggregationDownloaderOptions
-            {
-                Start = context.ParseResult.GetValueForOption(startOption),
-                End = context.ParseResult.GetValueForOption(endOption),
-                LocationId = context.ParseResult.GetValueForOption(locationOption)!,
-                DataType = context.ParseResult.GetValueForOption(dataTypeOption),
-                ApiKey = context.ParseResult.GetValueForOption(apiKeyOption),
-                ApiUrl = context.ParseResult.GetValueForOption(apiUrlOption),
-                Format = context.ParseResult.GetValueForOption(formatOption)!,
-                OutputPath = context.ParseResult.GetValueForOption(outputOption)
-            };
-
-            await HostBootstrapper.RunHostAsync<AggregationDownloaderService, AggregationDownloaderOptions>(options);
+            await RunDownloaderAsync<AggregationDownloaderService>(context);
         });
     }
 }
