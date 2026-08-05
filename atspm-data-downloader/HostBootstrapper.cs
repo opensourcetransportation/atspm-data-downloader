@@ -42,12 +42,17 @@ public static class HostBootstrapper
 
         builder.ConfigureServices((hostContext, services) =>
         {
-            services.Configure<DownloaderConfiguration>(opt =>
-            {
-                hostContext.Configuration.GetSection("DownloaderConfiguration").Bind(opt);
-
-                PropertyCopier.Copy(options, opt);
-            });
+            services.AddOptions<DownloaderConfiguration>()
+                .Bind(hostContext.Configuration.GetSection("DownloaderConfiguration"))
+                .Configure(opt => PropertyCopier.Copy(options, opt))
+                .Validate(opt => 
+                {
+                    return opt.Start != default && 
+                           opt.End != default && 
+                           opt.LocationIdentifiers != null && 
+                           opt.LocationIdentifiers.Count > 0;
+                }, "Required downloader configuration options are missing. Please provide '--start', '--end', and '--location' options via command line, environment variables (e.g. DownloaderConfiguration__Start), or appsettings.json.")
+                .ValidateOnStart();
 
             services.AddSingleton(sp => sp.GetRequiredService<IOptions<DownloaderConfiguration>>().Value);
 

@@ -31,6 +31,5 @@ public class StartOption : Option<DateTime>
         aliases: new[] { "--start", "-s" },
         description: "Inclusive start date/time (e.g. yyyy-MM-dd or yyyy-MM-ddTHH:mm:ss)")
     {
-        IsRequired = true;
     }
 }

@@ -31,6 +31,5 @@ public class EndOption : Option<DateTime>
         aliases: new[] { "--end", "-e" },
         description: "Inclusive end date/time (e.g. yyyy-MM-dd or yyyy-MM-ddTHH:mm:ss)")
     {
-        IsRequired = true;
     }
 }

@@ -33,6 +33,5 @@ public class LocationIdentifierOption : Option<List<string>>
     {
         Arity = ArgumentArity.OneOrMore;
         AllowMultipleArgumentsPerToken = true;
-        IsRequired = true;
     }
 }
