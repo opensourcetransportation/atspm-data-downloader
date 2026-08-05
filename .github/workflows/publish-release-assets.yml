@@ -1,0 +1,60 @@
+name: Publish Release Assets
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - '[0-9]+.[0-9]+.[0-9]+*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-assets:
+    name: Build Standalone Executables
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            runtime: win-x64
+            archive_cmd: Compress-Archive -Path publish/atspm-data-downloader.exe -DestinationPath atspm-downloader-win-x64.zip
+            archive_file: atspm-downloader-win-x64.zip
+          - os: ubuntu-latest
+            runtime: linux-x64
+            archive_cmd: tar -czvf atspm-downloader-linux-x64.tar.gz -C publish atspm-data-downloader
+            archive_file: atspm-downloader-linux-x64.tar.gz
+          - os: macos-latest
+            runtime: osx-x64
+            archive_cmd: tar -czvf atspm-downloader-osx-x64.tar.gz -C publish atspm-data-downloader
+            archive_file: atspm-downloader-osx-x64.tar.gz
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Publish Single File Binary
+      run: |
+        dotnet publish atspm-data-downloader/atspm-data-downloader.csproj \
+          -c Release \
+          -r ${{ matrix.runtime }} \
+          --self-contained true \
+          -p:PublishSingleFile=true \
+          -p:PublishReadyToRun=true \
+          -o publish
+
+    - name: Archive Binary
+      shell: pwsh
+      run: ${{ matrix.archive_cmd }}
+
+    - name: Upload to GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: ${{ matrix.archive_file }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
