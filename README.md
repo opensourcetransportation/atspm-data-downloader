@@ -169,7 +169,7 @@ DownloaderConfiguration__Start=2026-07-24
 DownloaderConfiguration__End=2026-07-25
 ```
 
-#### Scenario A: Download Raw Event Logs (`docker-compose-events.yml`)
+#### Scenario A: Download Raw Event Logs (`docker-compose.yml`)
 ```yaml
 version: '3.8'
 
@@ -190,7 +190,7 @@ services:
     command: ["download", "events", "@/app/locations.rdp"]
 ```
 
-#### Scenario B: Download Approach Aggregations (`docker-compose-aggregations.yml`)
+#### Scenario B: Download Approach Aggregations (`docker-compose.yml`)
 ```yaml
 version: '3.8'
 
