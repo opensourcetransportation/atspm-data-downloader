@@ -15,21 +15,14 @@
 // limitations under the License.
 #endregion
 
-using System;
-using System.IO;
-using System.Net;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
+using atspm_data_downloader.Configuration;
+using atspm_data_downloader.HostedServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Moq;
 using Moq.Protected;
-using Xunit;
-using atspm_data_downloader.Configuration;
-using atspm_data_downloader.HostedServices;
+using System.Net;
 
 namespace atspm_data_downloader.Tests.HostedServices;
 
@@ -238,7 +231,7 @@ public class DownloaderServiceTests : IDisposable
 
         Assert.True(File.Exists(expectedFilePath));
         var fileLines = await File.ReadAllLinesAsync(expectedFilePath);
-        
+
         Assert.Equal(3, fileLines.Length);
         Assert.Equal("Id,Name,Val", fileLines[0]);
         Assert.Equal("1,\"John, Doe\",10.5", fileLines[1]);

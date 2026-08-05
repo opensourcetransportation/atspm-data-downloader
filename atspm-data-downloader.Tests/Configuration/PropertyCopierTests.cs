@@ -17,7 +17,6 @@
 
 
 using atspm_data_downloader.Configuration;
-using Xunit;
 
 namespace atspm_data_downloader.Tests.Configuration;
 
